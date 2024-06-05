@@ -1,5 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <Servo.h>
+
 
 /* setup related to the motor of the knife that cuts */
 const int ENA_PIN = 9; // the Arduino pin connected to the EN1 pin L298N
@@ -7,7 +9,9 @@ const int IN1_PIN = 6; // the Arduino pin connected to the IN1 pin L298N
 const int IN2_PIN = 5; // the Arduino pin connected to the IN2 pin L298N
 
 /* pin of the rolling motor */
-const int motorPin = 9; // Connect the white wire to this pin
+const int rollMotorPin = 8; // Connect the white wire to this pin
+Servo esc_1;
+
 
 // Initialize the I2C LCD.
 LiquidCrystal_I2C lcd(0x3F, 16, 2);
@@ -29,6 +33,14 @@ void displayPiecesQuestion() {
   lcd.setCursor(0, 0);
   lcd.print("Pieces to cut?");
   updateDisplay();
+}
+
+void set_esc_power (Servo esc, int power){
+  power = constrain(power, -100, 100);
+  int signal_min = 1050;
+  int signal_max = 1950;
+  int signal_output = map(power, -100, 100, signal_min, signal_max); //map(value, fromLow, fromHigh, toLow, toHigh)
+  esc.writeMicroseconds(signal_output);
 }
 
 void displayLengthQuestion() {
@@ -65,43 +77,49 @@ void performCut(){
 }
 
 void runRolling(int length){
-  analogWrite(motorPin, 100);
+  set_esc_power(esc_1, 100);
   delay(1000*length); // Run for 1 second times the length we want (1 second is 1 cm)
   
   // Stop the motor
-  analogWrite(motorPin, 0)
+  set_esc_power(esc_1, 0);
 }
 
 void beginCut(int pieces, int length) {
   for (int i=0; i<pieces;i++){
+    Serial.write("starting the roll\n");
     runRolling(length);
+    Serial.write("Starting to cut\n");
     performCut();
   }
 }
 
-
-
 void setup() {
+  Serial.begin(9600);
+  Serial.write("Statrtinintt\n");
   pinMode(ENA_PIN, OUTPUT);
   pinMode(IN1_PIN, OUTPUT);
   pinMode(IN2_PIN, OUTPUT); 
 
-     // Set the motor control pin as output
-  pinMode(motorPin, OUTPUT);
+  esc_1.attach(rollMotorPin);
 
   // Initialize the LCD and button pins.
-  lcd.begin();
+  //lcd.begin();
   pinMode(increaseButton, INPUT_PULLUP);
   pinMode(decreaseButton, INPUT_PULLUP);
   pinMode(confirmButton, INPUT_PULLUP);
   pinMode(cancelButton, INPUT_PULLUP);
-
-  displayPiecesQuestion();
-
+  Serial.write("Second\n");
+  //displayPiecesQuestion();
+  Serial.write("Third\n");
 }
 
 void loop() {
-  if (digitalRead(increaseButton) == LOW) {
+  
+  Serial.write("Starting...\n");
+  //beginCut(1,1);
+  runRolling(10);
+  delay(10000);
+  /*if (digitalRead(increaseButton) == LOW) {
     if (selectingPieces) {
       piecesToCut++;
     } else {
@@ -135,5 +153,5 @@ void loop() {
     selectingPieces = true;
     displayPiecesQuestion();
     delay(200); // Debounce delay.
-  }
+  }*/
 }
